@@ -240,7 +240,7 @@ AVideo_Stream_Container.prototype.Update_Layout = function()
     let screen_w = 0;
     let screen_h = 0;
 
-    screen_w = this.Scene_Ref.scale.width;
+    screen_w = this.Scene_Ref.scale.width;  // Need make more comments
     screen_h = this.Scene_Ref.scale.height;
 
     // 1.0. Fullscreen Mode
