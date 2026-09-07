@@ -241,7 +241,7 @@ AVideo_Stream_Container.prototype.Update_Layout = function()
     let screen_h = 0;
 
     screen_w = this.Scene_Ref.scale.width;  // Need make more comments
-    screen_h = this.Scene_Ref.scale.height;
+    screen_h = this.Scene_Ref.scale.height;  // But not today
 
     // 1.0. Fullscreen Mode
     if (this.Is_Fullscreen_Live === true && this.Live_Channel !== null && this.Live_Channel.Sprite !== null)
