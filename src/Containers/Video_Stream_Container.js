@@ -246,7 +246,7 @@ AVideo_Stream_Container.prototype.Update_Layout = function()
     // 1.0. Fullscreen Mode
     if (this.Is_Fullscreen_Live === true && this.Live_Channel !== null && this.Live_Channel.Sprite !== null)
     {
-        this.Live_Channel.Sprite.setPosition(0, 0);
+        this.Live_Channel.Sprite.setPosition(0, 0);  // change sprite position
         this.Live_Channel.Sprite.setDisplaySize(screen_w, screen_h);
 
         if (this.Live_Channel.Label !== null)
