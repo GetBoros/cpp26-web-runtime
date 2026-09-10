@@ -63,7 +63,7 @@ AScene_Game.prototype.create = function ()
     this.Network_Manager = new ANetwork_Manager(SNetwork_Config.SERVER_URL);
 
     // 2.0. Add test containers
-    this.Video_Player = new AVideo_Stream_Container(this, false); // false = Dual Window Mode
+    this.Video_Player = new AVideo_Stream_Container(this, true); // false = Dual Window Mode
     this.Debug_Container = new ADebug_Container(this);  // Create debug container
     this.Border_Container = new ABorder_Container(this, SAsset_Config.TILESET.KEY, ETile_Frame.GREEN);
     this.Portrait_Container = new APortrait_Container(this);  // Create portrait container
@@ -79,6 +79,7 @@ AScene_Game.prototype.create = function ()
         this.Player_Data.URL_Format_m3u8_audio = string;
         this.Save_Manager.Save(this.Player_Data);
     });
+
     
     // 2.1. Update container possitions
     this.Update_Layout(this.scale.width, this.scale.height);
@@ -89,6 +90,13 @@ AScene_Game.prototype.create = function ()
     { 
         this.Save_Manager.Save(this.Player_Data);  // auto save on exit
     } );
+
+    // !!! TEMP
+    this.input.keyboard.on('keydown-M', () =>
+    {
+        this.Video_Player.Toggle_Mute();
+    });
+    this.Video_Player.Play_Dual_Stream(this.Player_Data.URL_Format_m3u8_video, this.Player_Data.URL_Format_m3u8_audio);
 };
 //------------------------------------------------------------------------------------------------------------
 AScene_Game.prototype.On_Window_Resize = function(game_size)
@@ -100,12 +108,6 @@ AScene_Game.prototype.Update_Layout = function (width, height)
 {
     let padding_x = 30;
     let padding_y = 30;
-
-    if(this.Video_Player !== null)  // Update video player position in the middle of the screen
-    {
-        this.Video_Player.setPosition(width / 2, height / 2);
-        this.Video_Player.Update_Layout();
-    }
 
     if (this.Progress_Bar_Container !== null)  // Update progress bar position at the bottom of the screen
         this.Progress_Bar_Container.Update_Layout(width / 2, height - 50);
@@ -126,6 +128,12 @@ AScene_Game.prototype.Update_Layout = function (width, height)
     {
         this.Debug_Container.Update_Layout(width - padding_x, padding_y);
         this.Debug_Container.Update_Text(width, height);
+    }
+
+    if (this.Video_Player !== null)  // Update video player position in the middle of the screen
+    {
+        this.Video_Player.setPosition(width / 2, height / 2);
+        this.Video_Player.Update_Layout();
     }
 };
 //------------------------------------------------------------------------------------------------------------
