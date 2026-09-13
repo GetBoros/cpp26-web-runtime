@@ -67,7 +67,7 @@ AScene_Game.prototype.create = function ()
     this.Video_Player.setDepth(10);
 
     this.Debug_Container = new ADebug_Container(this);  // Create debug container
-    his.Debug_Container.setDepth(100);
+    this.Debug_Container.setDepth(100);
 
     this.Border_Container = new ABorder_Container(this, SAsset_Config.TILESET.KEY, ETile_Frame.GREEN);
     this.Portrait_Container = new APortrait_Container(this);  // Create portrait container
