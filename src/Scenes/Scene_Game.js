@@ -64,7 +64,11 @@ AScene_Game.prototype.create = function ()
 
     // 2.0. Add test containers
     this.Video_Player = new AVideo_Stream_Container(this, true); // false = Dual Window Mode
+    this.Video_Player.setDepth(10);
+
     this.Debug_Container = new ADebug_Container(this);  // Create debug container
+    his.Debug_Container.setDepth(100);
+
     this.Border_Container = new ABorder_Container(this, SAsset_Config.TILESET.KEY, ETile_Frame.GREEN);
     this.Portrait_Container = new APortrait_Container(this);  // Create portrait container
     this.Progress_Bar_Container = new AProgress_Bar_Container(this, 300, 16, 0x11161d, 0x00ffcc);  // #11161d #00ffcc
@@ -80,7 +84,6 @@ AScene_Game.prototype.create = function ()
         this.Save_Manager.Save(this.Player_Data);
     });
 
-    
     // 2.1. Update container possitions
     this.Update_Layout(this.scale.width, this.scale.height);
 
