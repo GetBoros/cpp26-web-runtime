@@ -103,8 +103,23 @@ AVideo_Stream_Container.prototype.Create_Channel = function(texture_key, is_dela
     video_elem = document.createElement('video');
     video_elem.autoplay = true;
     video_elem.muted = true;
-    video_elem.playsInline = true;
     video_elem.crossOrigin = 'anonymous';
+
+    // Обязательные атрибуты для мобильных платформ (Android Chrome / iOS Safari)
+    video_elem.setAttribute('playsinline', '');
+    video_elem.setAttribute('webkit-playsinline', '');
+    video_elem.setAttribute('muted', '');
+    video_elem.setAttribute('autoplay', '');
+
+    // Скрываем элемент в DOM, не используя display: none (иначе мобильный декодер уснет)
+    video_elem.style.position = 'fixed';
+    video_elem.style.top = '-9999px';
+    video_elem.style.left = '-9999px';
+    video_elem.style.width = '1px';
+    video_elem.style.height = '1px';
+    video_elem.style.opacity = '0';
+    video_elem.style.pointerEvents = 'none';
+    document.body.appendChild(video_elem);
 
     hls_inst = new Hls(this.Hls_Config);
     hls_inst.loadSource(this.Stream_URL);
@@ -122,25 +137,29 @@ AVideo_Stream_Container.prototype.Create_Channel = function(texture_key, is_dela
 
     video_elem.addEventListener('loadedmetadata', () =>
     {
-        let tex_w;
-        let tex_h;
+        let tex_w = 0;
+        let tex_h = 0;
 
         if (is_delayed === true)
+        {
             video_elem.currentTime = 0;
+        }
 
-        video_elem.play();
+        // Безопасный запуск воспроизведения с перехватом отказа Autoplay
+        video_elem.play().catch((err) =>
+        {
+            console.warn('Autoplay prevented on mobile:', err);
+        });
 
         tex_w = video_elem.videoWidth || 1280;
         tex_h = video_elem.videoHeight || 720;
 
-        // Удаляем старую текстуру из кэша перед созданием новой
         if (this.Scene_Ref.textures.exists(texture_key))
+        {
             this.Scene_Ref.textures.remove(texture_key);
+        }
 
-        // 1.0. Создаем чистую динамическую CanvasTexture в TextureManager Phaser
         channel_obj.Canvas_Tex = this.Scene_Ref.textures.createCanvas(texture_key, tex_w, tex_h);
-
-        // 2.0. Добавляем спрайт и текст
         channel_obj.Sprite = this.Scene_Ref.add.image(0, 0, texture_key);
         this.add(channel_obj.Sprite);
 
@@ -162,7 +181,6 @@ AVideo_Stream_Container.prototype.Create_Channel = function(texture_key, is_dela
         }
         this.add(channel_obj.Label);
 
-        // 3.0. Аппаратный цикл отрисовки через requestVideoFrameCallback (VSync видеокадров)
         const Update_Texture_Frame = () =>
         {
             if (channel_obj.Canvas_Tex !== null && video_elem.readyState >= 2)
@@ -172,15 +190,21 @@ AVideo_Stream_Container.prototype.Create_Channel = function(texture_key, is_dela
             }
 
             if ('requestVideoFrameCallback' in video_elem)
+            {
                 video_elem.requestVideoFrameCallback(Update_Texture_Frame);
+            }
         };
 
         if ('requestVideoFrameCallback' in video_elem)
+        {
             video_elem.requestVideoFrameCallback(Update_Texture_Frame);
+        }
         else
+        {
             this.Scene_Ref.events.on('update', Update_Texture_Frame);
+        }
 
-        this.Update_Layout();  // Update position
+        this.Update_Layout();
     });
 
     return channel_obj;
@@ -277,7 +301,9 @@ AVideo_Stream_Container.prototype.Update_Layout = function()
 AVideo_Stream_Container.prototype.Stop_Channel = function(channel_obj)
 {
     if (channel_obj === null)
+    {
         return;
+    }
 
     if (channel_obj.Hls_Instance !== null)
     {
@@ -290,13 +316,19 @@ AVideo_Stream_Container.prototype.Stop_Channel = function(channel_obj)
         channel_obj.Video_Element.pause();
         channel_obj.Video_Element.removeAttribute('src');
         channel_obj.Video_Element.load();
+
+        // Удаляем узел из дерева DOM
+        if (channel_obj.Video_Element.parentNode !== null)
+        {
+            channel_obj.Video_Element.parentNode.removeChild(channel_obj.Video_Element);
+        }
+
         channel_obj.Video_Element = null;
     }
 
     if (channel_obj.Canvas_Tex !== null)
     {
         this.Scene_Ref.textures.remove(channel_obj.Texture_Key);
-        
         channel_obj.Canvas_Tex = null;
     }
 };
