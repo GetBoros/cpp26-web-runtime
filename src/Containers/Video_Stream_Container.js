@@ -96,32 +96,57 @@ AVideo_Stream_Container.prototype.Play = function(stream_url)
 //------------------------------------------------------------------------------------------------------------
 AVideo_Stream_Container.prototype.Create_Channel = function(texture_key, is_delayed)
 {
+    let frame_counter = 0;
     let channel_obj = null;
     let video_elem = null;
     let hls_inst = null;
 
+    // 1.0. Allocate and configure video DOM element
     video_elem = document.createElement('video');
     video_elem.autoplay = true;
     video_elem.muted = true;
     video_elem.crossOrigin = 'anonymous';
 
-    // Обязательные атрибуты для мобильных платформ (Android Chrome / iOS Safari)
     video_elem.setAttribute('playsinline', '');
     video_elem.setAttribute('webkit-playsinline', '');
     video_elem.setAttribute('muted', '');
     video_elem.setAttribute('autoplay', '');
 
-    // Скрываем элемент в DOM, не используя display: none (иначе мобильный декодер уснет)
+    // Keep element inside DOM tree but visually zeroed
     video_elem.style.position = 'fixed';
-    video_elem.style.top = '-9999px';
-    video_elem.style.left = '-9999px';
+    video_elem.style.top = '0px';
+    video_elem.style.left = '0px';
     video_elem.style.width = '1px';
     video_elem.style.height = '1px';
-    video_elem.style.opacity = '0';
+    video_elem.style.opacity = '0.01';
     video_elem.style.pointerEvents = 'none';
+    video_elem.style.zIndex = '-1';
     document.body.appendChild(video_elem);
 
+    // 2.0. Initialize HLS parser with diagnostic listeners
     hls_inst = new Hls(this.Hls_Config);
+
+    hls_inst.on(Hls.Events.ERROR, (event, data) =>
+    {
+        if (data.fatal)
+        {
+            if (channel_obj !== null && channel_obj.Label !== null)
+            {
+                channel_obj.Label.setText(`ERR: ${data.type} (${data.details})`);
+                channel_obj.Label.setColor('#e74c3c');
+            }
+        }
+    });
+
+    video_elem.addEventListener('error', () =>
+    {
+        if (channel_obj !== null && channel_obj.Label !== null)
+        {
+            channel_obj.Label.setText(`VIDEO_TAG_ERR: ${video_elem.error ? video_elem.error.code : 'UNKNOWN'}`);
+            channel_obj.Label.setColor('#e74c3c');
+        }
+    });
+
     hls_inst.loadSource(this.Stream_URL);
     hls_inst.attachMedia(video_elem);
 
@@ -132,7 +157,8 @@ AVideo_Stream_Container.prototype.Create_Channel = function(texture_key, is_dela
         Canvas_Tex: null,
         Sprite: null,
         Label: null,
-        Is_Delayed: is_delayed
+        Is_Delayed: is_delayed,
+        Update_Callback: null
     };
 
     video_elem.addEventListener('loadedmetadata', () =>
@@ -145,10 +171,12 @@ AVideo_Stream_Container.prototype.Create_Channel = function(texture_key, is_dela
             video_elem.currentTime = 0;
         }
 
-        // Безопасный запуск воспроизведения с перехватом отказа Autoplay
         video_elem.play().catch((err) =>
         {
-            console.warn('Autoplay prevented on mobile:', err);
+            if (channel_obj.Label !== null)
+            {
+                channel_obj.Label.setText(`AUTOPLAY BLOCKED (Tap screen)`);
+            }
         });
 
         tex_w = video_elem.videoWidth || 1280;
@@ -163,47 +191,38 @@ AVideo_Stream_Container.prototype.Create_Channel = function(texture_key, is_dela
         channel_obj.Sprite = this.Scene_Ref.add.image(0, 0, texture_key);
         this.add(channel_obj.Sprite);
 
-        if (is_delayed === true)
-        {
-            channel_obj.Label = this.Scene_Ref.add.text(0, -95, '⏪ REPLAY (-6s Drift)', {
-                fontSize: '13px',
-                color: '#e67e22',
-                fontStyle: 'bold'
-            }).setOrigin(0.5);
-        }
-        else
-        {
-            channel_obj.Label = this.Scene_Ref.add.text(0, -165, '● LIVE (HD Original)', {
-                fontSize: '15px',
-                color: '#2ecc71',
-                fontStyle: 'bold'
-            }).setOrigin(0.5);
-        }
+        channel_obj.Label = this.Scene_Ref.add.text(0, -165, '● CONNECTING...', {
+            fontSize: '13px',
+            color: '#2ecc71',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
         this.add(channel_obj.Label);
 
-        const Update_Texture_Frame = () =>
+        // 3.0. Engine update loop (bypasses mobile requestVideoFrameCallback throttling)
+        channel_obj.Update_Callback = () =>
         {
-            if (channel_obj.Canvas_Tex !== null && video_elem.readyState >= 2)
+            if (channel_obj.Canvas_Tex === null || video_elem === null)
+            {
+                return;
+            }
+
+            if (video_elem.readyState >= 2)
             {
                 channel_obj.Canvas_Tex.context.drawImage(video_elem, 0, 0, tex_w, tex_h);
                 channel_obj.Canvas_Tex.refresh();
+                frame_counter++;
             }
 
-            if ('requestVideoFrameCallback' in video_elem)
+            // Real-time on-screen telemetry
+            if (channel_obj.Label !== null)
             {
-                video_elem.requestVideoFrameCallback(Update_Texture_Frame);
+                channel_obj.Label.setText(
+                    `● LIVE [R:${video_elem.readyState} | ${video_elem.paused ? 'PAUSED' : 'PLAY'} | T:${video_elem.currentTime.toFixed(1)}s | F:${frame_counter}]`
+                );
             }
         };
 
-        if ('requestVideoFrameCallback' in video_elem)
-        {
-            video_elem.requestVideoFrameCallback(Update_Texture_Frame);
-        }
-        else
-        {
-            this.Scene_Ref.events.on('update', Update_Texture_Frame);
-        }
-
+        this.Scene_Ref.events.on('update', channel_obj.Update_Callback);
         this.Update_Layout();
     });
 
@@ -305,6 +324,12 @@ AVideo_Stream_Container.prototype.Stop_Channel = function(channel_obj)
         return;
     }
 
+    if (channel_obj.Update_Callback !== null)
+    {
+        this.Scene_Ref.events.off('update', channel_obj.Update_Callback);
+        channel_obj.Update_Callback = null;
+    }
+
     if (channel_obj.Hls_Instance !== null)
     {
         channel_obj.Hls_Instance.destroy();
@@ -317,7 +342,6 @@ AVideo_Stream_Container.prototype.Stop_Channel = function(channel_obj)
         channel_obj.Video_Element.removeAttribute('src');
         channel_obj.Video_Element.load();
 
-        // Удаляем узел из дерева DOM
         if (channel_obj.Video_Element.parentNode !== null)
         {
             channel_obj.Video_Element.parentNode.removeChild(channel_obj.Video_Element);
