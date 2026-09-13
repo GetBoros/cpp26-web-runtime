@@ -64,7 +64,7 @@ AScene_Game.prototype.create = function ()
 
     // 2.0. Add test containers
     this.Video_Player = new AVideo_Stream_Container(this, true); // false = Dual Window Mode
-    this.Video_Player.setDepth(10);
+    this.Video_Player.setDepth(10);  // Test
 
     this.Debug_Container = new ADebug_Container(this);  // Create debug container
     this.Debug_Container.setDepth(100);
