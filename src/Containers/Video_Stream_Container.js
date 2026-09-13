@@ -112,15 +112,15 @@ AVideo_Stream_Container.prototype.Create_Channel = function(texture_key, is_dela
     video_elem.setAttribute('muted', '');
     video_elem.setAttribute('autoplay', '');
 
-    // Keep element inside DOM tree but visually zeroed
+    // 1.1. Скрываем нативный тег, сохраняя реальные размеры для декодера Android
     video_elem.style.position = 'fixed';
     video_elem.style.top = '0px';
     video_elem.style.left = '0px';
-    video_elem.style.width = '1px';
-    video_elem.style.height = '1px';
-    video_elem.style.opacity = '0.01';
+    video_elem.style.width = '320px';
+    video_elem.style.height = '180px';
+    video_elem.style.opacity = '0';
     video_elem.style.pointerEvents = 'none';
-    video_elem.style.zIndex = '-1';
+    video_elem.style.zIndex = '-999';
     document.body.appendChild(video_elem);
 
     // 2.0. Initialize HLS parser with diagnostic listeners
@@ -175,7 +175,7 @@ AVideo_Stream_Container.prototype.Create_Channel = function(texture_key, is_dela
         {
             if (channel_obj.Label !== null)
             {
-                channel_obj.Label.setText(`AUTOPLAY BLOCKED (Tap screen)`);
+                channel_obj.Label.setText('AUTOPLAY BLOCKED (Tap screen)');
             }
         });
 
@@ -198,7 +198,7 @@ AVideo_Stream_Container.prototype.Create_Channel = function(texture_key, is_dela
         }).setOrigin(0.5);
         this.add(channel_obj.Label);
 
-        // 3.0. Engine update loop (bypasses mobile requestVideoFrameCallback throttling)
+        // 3.0. Engine update loop
         channel_obj.Update_Callback = () =>
         {
             if (channel_obj.Canvas_Tex === null || video_elem === null)

@@ -63,26 +63,34 @@ AScene_Game.prototype.create = function ()
     this.Network_Manager = new ANetwork_Manager(SNetwork_Config.SERVER_URL);
 
     // 2.0. Add test containers
-    this.Video_Player = new AVideo_Stream_Container(this, true); // false = Dual Window Mode
-    this.Video_Player.setDepth(10);  // Test
-
-    this.Debug_Container = new ADebug_Container(this);  // Create debug container
-    this.Debug_Container.setDepth(100);
+    this.Video_Player = new AVideo_Stream_Container(this, true);
+    this.Video_Player.setDepth(0); // Видео строго на заднем плане
 
     this.Border_Container = new ABorder_Container(this, SAsset_Config.TILESET.KEY, ETile_Frame.GREEN);
-    this.Portrait_Container = new APortrait_Container(this);  // Create portrait container
-    this.Progress_Bar_Container = new AProgress_Bar_Container(this, 300, 16, 0x11161d, 0x00ffcc);  // #11161d #00ffcc
+    this.Border_Container.setDepth(1);
 
-    this.Input_Container_Video = new AText_Input_Container(this, 'Enter URL format m3u8 video: ', this.Player_Data.URL_Format_m3u8_video, (string)=>
-    {// 
+    this.Portrait_Container = new APortrait_Container(this);
+    this.Portrait_Container.setDepth(10);
+
+    this.Progress_Bar_Container = new AProgress_Bar_Container(this, 300, 16, 0x11161d, 0x00ffcc);
+    this.Progress_Bar_Container.setDepth(10);
+
+    this.Debug_Container = new ADebug_Container(this);
+    this.Debug_Container.setDepth(100); // Отладка выше всего
+
+    this.Input_Container_Video = new AText_Input_Container(this, 'Enter URL format m3u8 video: ', this.Player_Data.URL_Format_m3u8_video, (string) =>
+    {
         this.Player_Data.URL_Format_m3u8_video = string;
         this.Save_Manager.Save(this.Player_Data);
     });
-    this.Input_Container_Audio = new AText_Input_Container(this, 'Enter URL format m3u8 audio: ', this.Player_Data.URL_Format_m3u8_audio, (string)=>
-    {// 
+    this.Input_Container_Video.setDepth(20); // Держим инпуты поверх видео и фона
+
+    this.Input_Container_Audio = new AText_Input_Container(this, 'Enter URL format m3u8 audio: ', this.Player_Data.URL_Format_m3u8_audio, (string) =>
+    {
         this.Player_Data.URL_Format_m3u8_audio = string;
         this.Save_Manager.Save(this.Player_Data);
     });
+    this.Input_Container_Audio.setDepth(20);
 
     // 2.1. Update container possitions
     this.Update_Layout(this.scale.width, this.scale.height);
